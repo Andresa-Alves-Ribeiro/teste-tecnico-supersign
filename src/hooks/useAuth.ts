@@ -38,7 +38,7 @@ export const useAuth = () => {
             }
 
             toast.success(TOAST_MESSAGES.auth.loginSuccess, TOAST_CONFIG);
-            router.push("/documents");
+            router.push("/");
         } catch (err) {
             console.error('Login error:', err);
             toast.error(TOAST_MESSAGES.auth.loginError, TOAST_CONFIG);
