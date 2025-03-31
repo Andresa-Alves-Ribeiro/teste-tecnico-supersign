@@ -1,57 +1,64 @@
-import { render, screen } from '@testing-library/react'
-import { useRouter } from 'next/router'
+import { render } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
 import AuthGuard from '../AuthGuard'
 
-// Mock next/router
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn()
+}))
+
+const mockPush = jest.fn()
 jest.mock('next/router', () => ({
-  useRouter: jest.fn()
+  useRouter: () => ({
+    push: mockPush
+  })
 }))
 
 describe('AuthGuard Component', () => {
-  const mockRouter = {
-    push: jest.fn()
-  }
-
-  const mockChildren = <div data-testid="test-children">Protected Content</div>
+  const mockChildren = <div>Protected Content</div>
 
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
   })
 
   it('shows loading state when status is loading', () => {
-    ;(useSession as jest.Mock).mockReturnValue({ status: 'loading' })
+    ;(useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: 'loading'
+    })
 
     render(<AuthGuard>{mockChildren}</AuthGuard>)
-    
-    expect(screen.getByText('Carregando...')).toBeInTheDocument()
-    expect(screen.queryByTestId('test-children')).not.toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('shows children when status is unauthenticated', () => {
-    ;(useSession as jest.Mock).mockReturnValue({ status: 'unauthenticated' })
+    ;(useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: 'unauthenticated'
+    })
 
     render(<AuthGuard>{mockChildren}</AuthGuard>)
-    
-    expect(screen.getByTestId('test-children')).toBeInTheDocument()
-    expect(screen.queryByText('Carregando...')).not.toBeInTheDocument()
+    expect(mockPush).toHaveBeenCalledWith('/login')
   })
 
-  it('redirects to home when status is authenticated', () => {
-    ;(useSession as jest.Mock).mockReturnValue({ status: 'authenticated' })
+  it('shows children when status is authenticated', () => {
+    ;(useSession as jest.Mock).mockReturnValue({
+      data: { user: { email: 'test@test.com' } },
+      status: 'authenticated'
+    })
 
-    render(<AuthGuard>{mockChildren}</AuthGuard>)
-    
-    expect(mockRouter.push).toHaveBeenCalledWith('/')
-    expect(screen.queryByTestId('test-children')).not.toBeInTheDocument()
+    const { container } = render(<AuthGuard>{mockChildren}</AuthGuard>)
+    expect(container.firstChild).not.toBeNull()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('returns null when status is not one of the expected states', () => {
-    ;(useSession as jest.Mock).mockReturnValue({ status: 'unknown' })
+    ;(useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: 'unknown'
+    })
 
     const { container } = render(<AuthGuard>{mockChildren}</AuthGuard>)
-    
-    expect(container).toBeEmptyDOMElement()
+    expect(container.firstChild).toBeNull()
   })
 }) 

@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom'
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import SignaturePad from '../../../components/signature/SignaturePad.jsx'
+import SignaturePad from '../../signature/SignaturePad'
 import toast from 'react-hot-toast'
-import { TOAST_CONFIG } from '../../../constants/toast.js'
+import { TOAST_CONFIG } from '../../../constants/toast'
 
 // Mock react-hot-toast
 jest.mock('react-hot-toast', () => {

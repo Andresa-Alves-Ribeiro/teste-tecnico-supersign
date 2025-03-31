@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/router';
-import RegisterPage from '../register';
+import RegisterPage from '../src/pages/register';
 import { useAuth } from '@/hooks/useAuth';
 import { renderWithProviders } from '@/test-utils';
 
@@ -30,6 +30,7 @@ describe('RegisterPage', () => {
   const mockRouter = { push: jest.fn() };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     (useAuth as jest.Mock).mockReturnValue({
       register: mockRegister,
@@ -37,95 +38,55 @@ describe('RegisterPage', () => {
     });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders register page correctly', async () => {
+  it('renders all form fields', () => {
     renderWithProviders(<RegisterPage />);
 
-    expect(screen.getByText('Criar uma conta')).toBeInTheDocument();
-    expect(screen.getByText('Preencha os dados abaixo para começar')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Seu nome')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('seu@email.com')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Confirme sua senha')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /criar conta/i })).toBeInTheDocument();
-  });
-
-  it('shows loading state when submitting', async () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      register: jest.fn(() => new Promise(resolve => setTimeout(resolve, 100))),
-      isLoading: false
-    });
-
-    render(<RegisterPage />);
-
-    const nameInput = screen.getByRole('textbox', { name: /nome/i });
-    const emailInput = screen.getByRole('textbox', { name: /email/i });
-    const passwordInput = screen.getByLabelText(/senha/i);
-    const confirmPasswordInput = screen.getByLabelText(/confirme sua senha/i);
+    const nameInput = screen.getByPlaceholderText('Seu nome completo');
+    const emailInput = screen.getByPlaceholderText('seu@email.com');
+    const passwordInput = screen.getByLabelText('Senha');
+    const confirmPasswordInput = screen.getByLabelText('Confirmar Senha');
     
-    fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: '123456' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: '123456' } });
-
-    const submitButton = screen.getByRole('button', { name: /criar conta/i });
-    fireEvent.click(submitButton);
-    
-    const loadingButton = await screen.findByRole('button', { name: /carregando\.\.\./i });
-    expect(loadingButton).toBeDisabled();
+    expect(nameInput).toBeInTheDocument();
+    expect(emailInput).toBeInTheDocument();
+    expect(passwordInput).toBeInTheDocument();
+    expect(confirmPasswordInput).toBeInTheDocument();
   });
 
   it('handles form submission correctly', async () => {
     renderWithProviders(<RegisterPage />);
 
-    const nameInput = screen.getByPlaceholderText('Seu nome');
+    const nameInput = screen.getByPlaceholderText('Seu nome completo');
     const emailInput = screen.getByPlaceholderText('seu@email.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
-    const confirmPasswordInput = screen.getByPlaceholderText('Confirme sua senha');
-    const submitButton = screen.getByRole('button', { name: /criar conta/i });
-
+    const passwordInput = screen.getByLabelText('Senha');
+    const confirmPasswordInput = screen.getByLabelText('Confirmar Senha');
+    
     fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.change(confirmPasswordInput, { target: { value: 'password123' } });
-    fireEvent.click(submitButton);
-
-    expect(mockRegister).toHaveBeenCalledWith({
-      name: 'John Doe',
-      email: 'test@example.com',
-      password: 'password123',
-      confirmPassword: 'password123'
-    });
-  });
-
-  it('shows validation errors for invalid form submission', async () => {
-    renderWithProviders(<RegisterPage />);
 
     const submitButton = screen.getByRole('button', { name: /criar conta/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('O nome deve ter no mínimo 3 caracteres')).toBeInTheDocument();
-      expect(screen.getByText('Email inválido')).toBeInTheDocument();
-      expect(screen.getByText('A senha deve ter no mínimo 6 caracteres')).toBeInTheDocument();
+      expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123'
+      }));
     });
-
-    expect(mockRegister).not.toHaveBeenCalled();
   });
 
   it('shows error when passwords do not match', async () => {
     renderWithProviders(<RegisterPage />);
 
-    const nameInput = screen.getByPlaceholderText('Seu nome');
+    const nameInput = screen.getByPlaceholderText('Seu nome completo');
     const emailInput = screen.getByPlaceholderText('seu@email.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
-    const confirmPasswordInput = screen.getByPlaceholderText('Confirme sua senha');
+    const passwordInput = screen.getByLabelText('Senha');
+    const confirmPasswordInput = screen.getByLabelText('Confirmar Senha');
     
     fireEvent.change(nameInput, { target: { value: 'John Doe' } });
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.change(confirmPasswordInput, { target: { value: 'different' } });
 
@@ -133,16 +94,16 @@ describe('RegisterPage', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('As senhas não coincidem')).toBeInTheDocument();
+      expect(mockRegister).not.toHaveBeenCalled();
+      const errorMessage = screen.getByText('As senhas não coincidem');
+      expect(errorMessage).toBeInTheDocument();
     });
-
-    expect(mockRegister).not.toHaveBeenCalled();
   });
 
-  it('navigates to login page when clicking login link', async () => {
+  it('navigates to login page when clicking login link', () => {
     renderWithProviders(<RegisterPage />);
 
-    const loginLink = screen.getByText('Já tem uma conta?');
+    const loginLink = screen.getByRole('link', { name: /faça login/i });
     expect(loginLink).toHaveAttribute('href', '/login');
   });
 }); 

@@ -15,16 +15,13 @@ describe('Loading Component', () => {
 
   it('renders loading animation elements', () => {
     render(<Loading />)
-    
-    // Check for the main container
-    expect(screen.getByRole('presentation')).toBeInTheDocument()
-    
+
+    // Check for the loading text
+    expect(screen.getByText('Carregando...')).toBeInTheDocument()
+
     // Check for the loading animation container
     const animationContainer = screen.getByTestId('loading-animation')
     expect(animationContainer).toBeInTheDocument()
-    
-    // Check for the dots container
-    const dotsContainer = screen.getByTestId('loading-dots')
-    expect(dotsContainer).toBeInTheDocument()
+    expect(animationContainer).toHaveClass('animate-spin')
   })
 }) 
